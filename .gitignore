@@ -1,0 +1,15 @@
+xcuserdata/
+.DS_Store
+ClaudeUsageCore/.build/
+ClaudeUsageCore/.swiftpm/
+
+# Local Claude Code config — never share
+.claude/
+
+# Secrets / signing material — belt-and-suspenders so they can't be force-added
+*.p12
+*.pem
+*.mobileprovision
+*.cer
+.env
+.env.*

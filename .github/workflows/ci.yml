@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Tests
+    # Xcode 26 toolchain required (file-system-synchronized project,
+    # default-MainActor isolation). If macos-26 runners are unavailable on
+    # this plan, switch to the newest macos-* image that carries Xcode 26.
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package tests
+        run: swift test --package-path ClaudeUsageCore
+      - name: Build app
+        run: |
+          xcodebuild -project "Claude Usage.xcodeproj" \
+            -scheme "Claude Usage" \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+  release:
+    name: Release .pkg
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: test
+    runs-on: macos-26
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build app (Release, ad-hoc signed)
+        run: |
+          xcodebuild -project "Claude Usage.xcodeproj" \
+            -scheme "Claude Usage" \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY=- \
+            DEVELOPMENT_TEAM= \
+            build
+      - name: Package .pkg
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          pkgbuild \
+            --component "build/Build/Products/Release/Claude Usage.app" \
+            --install-location /Applications \
+            --identifier ee.pixelchain.Claude-Usage \
+            --version "$VERSION" \
+            "ClaudeUsage-${GITHUB_REF_NAME}.pkg"
+      # To ship notarized releases later: import Developer ID Application +
+      # Installer certs from repo secrets before the build step, replace
+      # CODE_SIGN_IDENTITY=- with the Developer ID identity, sign the pkg
+      # with productsign, then 'xcrun notarytool submit --wait' and
+      # 'xcrun stapler staple' before the release step.
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ClaudeUsage-*.pkg
+          generate_release_notes: true
