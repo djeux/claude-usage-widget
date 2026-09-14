@@ -9,7 +9,8 @@ reports, always one glance away.
 - **Menu bar:** `✽ 62%` — the most-constrained limit right now. Orange at
   ≥60%, red at ≥95%, dimmed when the data is stale.
 - **Dropdown:** every limit window your plan reports (5-hour session,
-  weekly all-models, weekly per-model) with a progress bar and reset time,
+  weekly all-models, weekly per-model such as Opus, Sonnet, or Fable) with a
+  progress bar and reset time,
   plus last-updated time, manual refresh, a launch-at-login toggle, and Quit.
 
 ## Requirements
