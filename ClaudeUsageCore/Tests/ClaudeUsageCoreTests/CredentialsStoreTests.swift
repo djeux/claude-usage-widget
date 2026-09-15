@@ -2,11 +2,6 @@ import XCTest
 @testable import ClaudeUsageCore
 
 final class CredentialsStoreTests: XCTestCase {
-    struct FakeKeychain: KeychainReading {
-        var result: Result<Data, KeychainError>
-        func data(service: String) throws -> Data { try result.get() }
-    }
-
     static let now = Date(timeIntervalSince1970: 1_781_179_200) // 2026-06-11T12:00:00Z
 
     private static func json(expiresAtMs: Double) -> Data {
@@ -17,7 +12,12 @@ final class CredentialsStoreTests: XCTestCase {
     }
 
     private func store(_ result: Result<Data, KeychainError>) -> KeychainCredentialsStore {
-        KeychainCredentialsStore(keychain: FakeKeychain(result: result))
+        let keychain = FakeKeychain()
+        switch result {
+        case .success(let data): keychain.items["Claude Code-credentials|"] = data
+        case .failure(let error): keychain.failure = error
+        }
+        return KeychainCredentialsStore(keychain: keychain)
     }
 
     func testReadsValidToken() throws {
