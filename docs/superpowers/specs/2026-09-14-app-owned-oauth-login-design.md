@@ -1,7 +1,7 @@
 # App-Owned OAuth Login — Design
 
 - **Date:** 2026-09-14
-- **Status:** Awaiting user review.
+- **Status:** Approved 2026-09-15; implemented on branch `app-owned-oauth-login`.
 - **Supersedes:** `2026-07-02-keychain-prompt-reduction-design.md` (that design only lowers prompts to one per token rotation; this one removes the shared keychain read entirely).
 
 ## Problem
@@ -228,8 +228,8 @@ All in `ClaudeUsageCoreTests` unless noted.
 
 ## Open items (resolved during implementation, not before)
 
-1. **Scope check:** the first implementation task is a throwaway script or test that completes the flow with `user:profile` and calls `/api/oauth/usage`. If the endpoint rejects that scope, widen `OAuthConfiguration.scopes` to the smallest set that works and record the result here. Nothing else in the design changes.
-2. **Token response shape:** the decoder is written leniently (all fields except `access_token` optional) so an unexpected extra or missing field doesn't break sign-in.
+1. **Scope check — resolved 2026-09-15.** A throwaway script ran the full flow live with `user:profile` only: exchange succeeded (scope granted as requested, `expires_in` 28800 s), `/api/oauth/usage` returned all three limit windows, refresh succeeded and **rotated the refresh token**, and usage worked again with the refreshed access token. `OAuthConfiguration.claude.scopes` stays `["user:profile"]`. Because the refresh token rotates, `OAuthCredentialsStore` keeps a freshly refreshed set in memory even if the keychain write fails.
+2. **Token response shape — resolved.** Observed fields: `token_type`, `access_token`, `refresh_token`, `expires_in`, `scope`, `account { uuid, email_address }`. The decoder treats everything but `access_token` as optional.
 
 ## Out of scope
 

@@ -79,6 +79,19 @@ final class OAuthCredentialsStoreTests: XCTestCase {
         XCTAssertEqual(recovered.accessToken, "at-new")
     }
 
+    func testSaveFailureAfterRefreshKeepsFreshTokensInMemory() async throws {
+        let store = try makeStore(seed: Self.valid)
+        _ = try await store.read(now: Self.now) // warm the in-memory cache
+        await store.invalidate()
+        keychain.failure = .os(-25293)
+        await assertThrows(try await store.read(now: Self.now), .keychain(-25293))
+        // The rotated refresh token must not be lost: the next read serves it from memory.
+        keychain.failure = nil
+        let served = try await store.read(now: Self.now)
+        XCTAssertEqual(served.accessToken, "at-new")
+        XCTAssertEqual(exchanger.refreshes.count, 1)
+    }
+
     func testInvalidateForcesRefresh() async throws {
         let store = try makeStore(seed: Self.valid)
         _ = try await store.read(now: Self.now)

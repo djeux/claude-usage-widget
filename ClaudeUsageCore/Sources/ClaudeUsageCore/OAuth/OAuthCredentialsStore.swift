@@ -86,8 +86,10 @@ public actor OAuthCredentialsStore: SessionManaging {
         } catch {
             throw CredentialsError.refreshFailed
         }
-        try store.save(fresh)
+        // The refresh token rotates on every refresh, so keep the fresh set in
+        // memory even if persisting it fails; otherwise the grant would be lost.
         cached = fresh
+        try store.save(fresh)
         return fresh
     }
 }
