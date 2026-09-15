@@ -11,50 +11,23 @@ public struct Credentials: Equatable, Sendable {
 }
 
 public enum CredentialsError: Error, Equatable, Sendable {
+    /// No stored login — the UI should offer Sign in.
     case notLoggedIn
+    /// Refresh hit a network/HTTP problem; stored tokens are untouched.
+    case refreshFailed
     case accessDenied
-    case expired
     case malformed
     case keychain(OSStatus)
 }
 
+/// Hands out a usable access token, refreshing behind the scenes.
 public protocol CredentialsProviding: Sendable {
-    func read(now: Date) throws -> Credentials
+    func read(now: Date) async throws -> Credentials
+    /// Treat the current access token as expired so the next `read` refreshes.
+    func invalidate() async
 }
 
-public struct KeychainCredentialsStore: CredentialsProviding {
-    public static let service = "Claude Code-credentials"
-
-    private let keychain: KeychainAccessing
-
-    public init(keychain: KeychainAccessing = SystemKeychain()) {
-        self.keychain = keychain
-    }
-
-    private struct RawCredentials: Decodable {
-        struct OAuth: Decodable {
-            let accessToken: String
-            let expiresAt: Double // milliseconds since epoch
-        }
-        let claudeAiOauth: OAuth
-    }
-
-    public func read(now: Date) throws -> Credentials {
-        let data: Data
-        do {
-            data = try keychain.data(service: Self.service, account: "")
-        } catch let error as KeychainError {
-            switch error {
-            case .itemNotFound: throw CredentialsError.notLoggedIn
-            case .accessDenied: throw CredentialsError.accessDenied
-            case .os(let status): throw CredentialsError.keychain(status)
-            }
-        }
-        guard let raw = try? JSONDecoder().decode(RawCredentials.self, from: data) else {
-            throw CredentialsError.malformed
-        }
-        let expiresAt = Date(timeIntervalSince1970: raw.claudeAiOauth.expiresAt / 1000)
-        guard expiresAt > now else { throw CredentialsError.expired }
-        return Credentials(accessToken: raw.claudeAiOauth.accessToken, expiresAt: expiresAt)
-    }
+public protocol SessionManaging: CredentialsProviding {
+    func signIn(openURL: @escaping @Sendable (URL) -> Void) async throws
+    func signOut() async
 }
