@@ -16,9 +16,7 @@ reports, always one glance away.
 ## Requirements
 
 - macOS 14 (Sonoma) or later
-- [Claude Code](https://claude.com/claude-code) installed and logged in
-  with a Claude subscription — the app reads the OAuth token Claude Code
-  stores in your keychain
+- A Claude subscription (Pro/Max). Claude Code does not need to be installed.
 
 ## Install
 
@@ -27,20 +25,23 @@ reports, always one glance away.
 2. The package isn't notarized yet, so macOS will warn on open:
    right-click the `.pkg` → Open → Open (or allow it under
    System Settings → Privacy & Security → "Open Anyway").
-3. On first launch, macOS asks for keychain access to
-   `Claude Code-credentials` → click **Always Allow** so background
-   refresh keeps working.
+3. Open the menu bar item and click **Sign in**. Approve in the browser;
+   the app finishes signing in on its own. No keychain prompts.
 
 ## How it works / privacy
 
-- Reads the access token from your login keychain **read-only** — it never
-  touches the refresh token and never writes to the keychain.
-- Talks only to `https://api.anthropic.com/api/oauth/usage` (the same
+- Signs in with your Claude account through the same OAuth login Claude
+  Code uses, asking only for the `user:profile` scope — the app cannot
+  run inference with its token.
+- Stores its own tokens in a keychain item it creates (`Claude Usage`),
+  so macOS never asks you to allow access. It never reads Claude Code's
+  keychain item.
+- Talks only to `claude.com` / `platform.claude.com` (sign-in and token
+  refresh) and `https://api.anthropic.com/api/oauth/usage` (the same
   endpoint Claude Code's `/usage` uses), every 5 minutes.
 - No analytics, no third-party servers, no dependencies.
-- If the token expires, the app dims the last data and recovers
-  automatically the next time you use Claude Code (which refreshes the
-  token in the keychain).
+- If Anthropic rejects the token, the app shows **Sign in** again; if the
+  network is down it dims the last data and retries.
 
 ## Build from source
 

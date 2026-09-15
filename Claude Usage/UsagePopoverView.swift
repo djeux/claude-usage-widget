@@ -26,6 +26,18 @@ struct UsagePopoverView: View {
 
     @ViewBuilder
     private var content: some View {
+        switch viewModel.phase {
+        case .signedOut:
+            signedOutContent
+        case .signingIn:
+            signingInContent
+        default:
+            usageContent
+        }
+    }
+
+    @ViewBuilder
+    private var usageContent: some View {
         if let snapshot = viewModel.snapshot, !snapshot.windows.isEmpty {
             ForEach(snapshot.windows) { window in
                 LimitRowView(window: window)
@@ -39,6 +51,42 @@ struct UsagePopoverView: View {
         }
     }
 
+    private var signedOutContent: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Sign in with your Claude account to see usage")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            Button("Sign in") {
+                Task { await viewModel.signIn() }
+            }
+            if let error = viewModel.signInError {
+                Label(error, systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+        }
+    }
+
+    private var signingInContent: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text("Finish signing in in your browser…")
+                    .font(.callout)
+            }
+            Button("Cancel") {
+                viewModel.cancelSignIn()
+            }
+        }
+    }
+
+    private var isSignedIn: Bool {
+        switch viewModel.phase {
+        case .signedOut, .signingIn: return false
+        default: return true
+        }
+    }
+
     private var footer: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -48,13 +96,15 @@ struct UsagePopoverView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button {
-                    Task { await viewModel.refresh() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
+                if isSignedIn {
+                    Button {
+                        Task { await viewModel.refresh() }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Refresh now")
                 }
-                .buttonStyle(.borderless)
-                .help("Refresh now")
             }
             Toggle("Launch at login", isOn: $launchAtLogin)
                 .toggleStyle(.checkbox)
@@ -62,10 +112,19 @@ struct UsagePopoverView: View {
                 .onChange(of: launchAtLogin) { _, newValue in
                     LaunchAtLogin.set(enabled: newValue)
                 }
-            Button("Quit Claude Usage") {
-                NSApplication.shared.terminate(nil)
+            HStack {
+                if isSignedIn {
+                    Button("Sign out") {
+                        Task { await viewModel.signOut() }
+                    }
+                    .font(.caption)
+                }
+                Spacer()
+                Button("Quit Claude Usage") {
+                    NSApplication.shared.terminate(nil)
+                }
+                .font(.caption)
             }
-            .font(.caption)
         }
     }
 }

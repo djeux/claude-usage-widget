@@ -1,7 +1,7 @@
 # Keychain Prompt Reduction — Design
 
 - **Date:** 2026-07-02
-- **Status:** Awaiting user review. Approach #1 (lazy reads + in-memory cache) was selected per Claude's recommendation while the user was away; variants 2 and 3 below remain available as follow-ups.
+- **Status:** Superseded by `2026-09-14-app-owned-oauth-login-design.md` (never implemented). Original status: awaiting user review. Approach #1 (lazy reads + in-memory cache) was selected per Claude's recommendation while the user was away; variants 2 and 3 below remain available as follow-ups.
 
 ## Problem
 
